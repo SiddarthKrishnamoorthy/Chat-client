@@ -1,1 +1,1 @@
-# Chat-client
+# Chat Application
