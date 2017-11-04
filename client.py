@@ -15,10 +15,12 @@ except:
     sys.exit(1)
 
 username = input("Enter username: ")
+s.send(username.encode())
 password = input("Enter password: ")
+s.send(password.encode())
 
-# TODO: Send username and password, if correct log in, else quit
-
+sys.stdout.write('> ')
+sys.stdout.flush()
 while True:
     socket_list = [sys.stdin, s]
 
@@ -29,15 +31,16 @@ while True:
             # data coming from server
             data = sock.recv(1000)
             if data:
-                sys.stdout.write(data + '\n')
-                sys.stdout.write('[You] ')
+                sys.stdout.write(data.decode() + '\n')
+                sys.stdout.write('> ')
                 sys.stdout.flush()
             else:
                 print('Disconnected from server')
                 sys.exit(1)
         else:
-            sys.stdout.write('[You] ')
+            sys.stdout.write('> ')
             msg = sys.stdin.readline()
+            s.send(msg.encode('ascii'))
             sys.stdout.flush()
 
 
