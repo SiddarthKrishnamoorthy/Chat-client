@@ -2,19 +2,59 @@ import sys
 import socket
 import select
 
-# TODO: Parsing of commands sent by client
+# TODO: Cleanly exit on Ctrl+c, delete all temporary files
 
-def broadcast(users_online, up, msg):
+class Client:
+    def __init__(self, sock, username):
+        self.sock = sock
+        self.login_time = 0 # TODO: Get login time
+        self.uname = username
+
+    def __str__(self):
+        return self.uname
+
+    __repr__ = __str__
+
+# TODO: Parsing of commands sent by client
+def cmd(msg, users_online, up, sock):
+    ms = msg.split(' ')
+    cmds = ms[0]
+
+    if cmds == 'whoelse\n':
+        string = '\n'.join([x.uname for x in users_online])
+        print(string)
+        sock.send(string.encode('ascii'))
+    elif cmds == 'wholasthr\n':
+        # TODO: Implement
+        print()
+    elif cmds == 'broadcast':
+        #print(ms[1])
+        message = ms[1] # TODO: Parse the string and add more info to the broadcast
+        broadcast(users_online, up, message, sock) # TODO: Remove \n at the end of the string
+    elif cmds == 'message':
+        uname = ms[1]
+        message = ms[2]
+
+        for x in users_online:
+            if x.uname == uname:
+                x.sock.send(message.encode('ascii'))
+            else:
+                with open(uname, 'a+') as file:
+                    file.write(message)
+    else:
+        sock.send('Command not supported'.encode('ascii'))
+
+def broadcast(users_online, up, msg, sock):
     tmp = {}
     for key, value in up.items():
         tmp[key] = value[0]
 
     for uname in users_online:
-        s = tmp.index(uname)
-        try:
-            s.send(msg.encode('ascii'))
-        except:
-            print("Error in brosdcasting to user {0}".format(uname))
+        if uname.sock != sock:
+            try:
+                uname.sock.send(msg.encode('ascii'))
+            except:
+                print("Error in broadcasting to user {0}".format(uname))
 
 host = '127.0.0.1'
 port = 2000
@@ -52,7 +92,8 @@ while True:
                 if data:
                     if clients[s] == 0:
                         usr = data.decode()
-                        if usr in users_online:
+                        tmp = [x.uname for x in users_online]
+                        if usr in tmp:
                             s.send("Already logged in on another terminal".encode('ascii'))
                             continue
 
@@ -96,17 +137,26 @@ while True:
                             s.send('Incorrect password. Please try again'.encode('ascii'))
                             num_login_attempts[up[s][0]] += 1 # TODO: Block IP
                         else:
-                            users_online.append(up[s][0])
+                            user = Client(s, up[s][0])
+                            users_online.append(user)
+                            try:
+                                f = open(user.uname)
+                                f = f.read()
+                                s.send(f.encode('ascii'))
+                            except:
+                                s.send('No pending messages :P'.encode('ascii'))
+                            #print(users_online)
 
                     else:
                     # TODO: Do something with the data
-                        print(data.decode())
+                        cmd(data.decode(), users_online, up, s)
+                        #print(data.decode())
                 else:
                     # broken socket
                     if s in socket_list:
                         socket_list.remove(s)
                         del clients[s]
-                        users_online.remove(up[s][0])
+                        users_online.remove(next(x for x in users_online if x.uname == up[s][0]))
                         del up[s]
             except:
                 # Some exception has occurred

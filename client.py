@@ -32,15 +32,16 @@ while True:
             data = sock.recv(1000)
             if data:
                 sys.stdout.write(data.decode() + '\n')
+                sys.stdout.flush()
                 sys.stdout.write('> ')
                 sys.stdout.flush()
             else:
                 print('Disconnected from server')
                 sys.exit(1)
         else:
-            sys.stdout.write('> ')
             msg = sys.stdin.readline()
             s.send(msg.encode('ascii'))
-            sys.stdout.flush()
+            #sys.stdout.write('> ')
+            #sys.stdout.flush()
 
 
