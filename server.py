@@ -5,6 +5,7 @@ import time
 import calendar
 import signal
 import os
+import re
 
 def signal_handler(signum, frame):
     print('Signal called with signal ', signum)
@@ -31,6 +32,10 @@ class Client:
 def cmd(msg, users_online, up, sock):
     ms = msg.split(' ')
     cmds = ms[0]
+    print(cmds)
+    p = re.compile('^([a-z]+) ([0-9]+),([0-9]+),([0-9]+)$')
+    p2 = re.compile('^([a-z]+) ([0-9]+)$')
+    print(msg)
 
     if cmds == 'whoelse\n':
         string = '\n'.join([x.uname for x in users_online])
@@ -61,6 +66,34 @@ def cmd(msg, users_online, up, sock):
             else:
                 with open(uname, 'a+') as file:
                     file.write('\n' + message)
+    elif cmds == 'enc':
+        uname = ms[1]
+        sender = next(x for x in users_online if x.sock == sock)
+        recvr = next(x for x in users_online if x.uname == uname)
+
+        if recvr is not None:
+            sock.send(('Can send ' + recvr.uname).encode('ascii'))
+            #print('ssend')
+        else:
+            sock.send('Cannot send encrypted message'.encode('ascii'))
+            #print('1ssend')
+            return
+    elif p.match(msg) or p2.match(msg):
+        #print(msg)
+        recv, dt = msg.split(' ')
+        recvr = next(x for x in users_online if x.uname == recv)
+        sender = next(x for x in users_online if x.sock == sock)
+        #print(recvr.uname)
+        sk = sender.uname + ' ' + dt
+        recvr.sock.send(sk.encode('ascii'))
+    elif cmds == 'secret': 
+        recv = ms[1]
+        mg = ms[2]
+        recvr = next(x for x in users_online if x.uname == recv)
+        sender = next(x for x in users_online if x.sock == sock)
+        #print(recvr.uname)
+        #print(mg)
+        recvr.sock.send(('secret ' + sender.uname + ' ' + mg).encode('ascii'))
     else:
         sock.send('Command not supported'.encode('ascii'))
 
