@@ -1,13 +1,25 @@
 import sys
 import socket
 import select
+import time
+import calendar
+import signal
+import os
 
-# TODO: Cleanly exit on Ctrl+c, delete all temporary files
+def signal_handler(signum, frame):
+    print('Signal called with signal ', signum)
+    # Exit gracefully
+    while users_online:
+        usr = users_online.pop()
+        usr.sock.close()
+
+    serv_sock.close()
+    sys.exit(0)
 
 class Client:
     def __init__(self, sock, username):
         self.sock = sock
-        self.login_time = 0 # TODO: Get login time
+        self.login_time = calendar.timegm(time.gmtime())
         self.uname = username
 
     def __str__(self):
@@ -22,25 +34,33 @@ def cmd(msg, users_online, up, sock):
 
     if cmds == 'whoelse\n':
         string = '\n'.join([x.uname for x in users_online])
-        print(string)
+        #print(string)
         sock.send(string.encode('ascii'))
     elif cmds == 'wholasthr\n':
-        # TODO: Implement
-        print()
+        ms = []
+        t = calendar.timegm(time.gmtime())
+        for u in users_online:
+            if t - u.login_time <= 3600:
+                ms.append(u.uname)
+        string = '\n'.join(x for x in ms)
+        sock.send(string.encode('ascii'))
+        #print(string)
     elif cmds == 'broadcast':
         #print(ms[1])
-        message = ms[1] # TODO: Parse the string and add more info to the broadcast
+        t = next(x for x in users_online if x.sock == sock)
+        message = '\n**' + t.uname + ' broadcasts** ' + ms[1]
         broadcast(users_online, up, message, sock) # TODO: Remove \n at the end of the string
     elif cmds == 'message':
+        t = next(x for x in users_online if x.sock == sock)
         uname = ms[1]
-        message = ms[2]
+        message = '*' + t.uname  + '* ' + ms[2]
 
         for x in users_online:
             if x.uname == uname:
                 x.sock.send(message.encode('ascii'))
             else:
                 with open(uname, 'a+') as file:
-                    file.write(message)
+                    file.write('\n' + message)
     else:
         sock.send('Command not supported'.encode('ascii'))
 
@@ -56,6 +76,7 @@ def broadcast(users_online, up, msg, sock):
             except:
                 print("Error in broadcasting to user {0}".format(uname))
 
+signal.signal(signal.SIGINT, signal_handler)
 host = '127.0.0.1'
 port = 2000
 socket_list = []
@@ -134,7 +155,7 @@ while True:
                         f.pop()
 
                         if up[s][1] != passwd:
-                            s.send('Incorrect password. Please try again'.encode('ascii'))
+                            s.send('Incorrect username/password. Please try again'.encode('ascii'))
                             num_login_attempts[up[s][0]] += 1 # TODO: Block IP
                         else:
                             user = Client(s, up[s][0])
@@ -143,12 +164,12 @@ while True:
                                 f = open(user.uname)
                                 f = f.read()
                                 s.send(f.encode('ascii'))
+                                os.remove(user.uname)
                             except:
                                 s.send('No pending messages :P'.encode('ascii'))
                             #print(users_online)
 
                     else:
-                    # TODO: Do something with the data
                         cmd(data.decode(), users_online, up, s)
                         #print(data.decode())
                 else:
