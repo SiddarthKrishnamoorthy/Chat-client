@@ -2,10 +2,10 @@
 A  client server based chat application for the course project for CS425A.
 
 # Usage
-On server:
+On server:  
 ```python3 server.py```
 
-On client:
+On client:  
 ```python3 client.py```
 
 # Commands
@@ -13,6 +13,8 @@ On client:
 2. `wholasthr`: Display name of users online within the last hour
 3. `broadcast <MESSAGE>`: Broadcast message to all currently online users
 4. `message <USER> <MESSAGE>`: Send message to USER
-5. `block <USER>`: Block USER
-6. `unblock <USER>`: Unblock USER
-7. `logout`: Logout client
+5. `enc <USER>`: Encrypt connection to USER
+6. `secret <USER> <MESSAGE>`: Send encrypted message to USER
+7. `block <USER>`: Block USER
+8. `unblock <USER>`: Unblock USER
+9. `logout`: Logout client
