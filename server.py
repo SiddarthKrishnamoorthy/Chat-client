@@ -54,7 +54,7 @@ def cmd(msg, users_online, up, sock):
         #print(ms[1])
         t = next(x for x in users_online if x.sock == sock)
         message = '\n**' + t.uname + ' broadcasts** ' + ms[1]
-        broadcast(users_online, up, message, sock) # TODO: Remove \n at the end of the string
+        broadcast(users_online, up, message, sock, t.uname) # TODO: Remove \n at the end of the string
     elif cmds == 'message':
         t = next(x for x in users_online if x.sock == sock)
         uname = ms[1]
@@ -120,7 +120,7 @@ def cmd(msg, users_online, up, sock):
     else:
         sock.send('Command not supported'.encode('ascii'))
 
-def broadcast(users_online, up, msg, sock):
+def broadcast(users_online, up, msg, sock, sender):
     tmp = {}
     for key, value in up.items():
         tmp[key] = value[0]
@@ -128,7 +128,10 @@ def broadcast(users_online, up, msg, sock):
     for uname in users_online:
         if uname.sock != sock:
             try:
-                uname.sock.send(msg.encode('ascii'))
+                if (uname.uname in blockedUsers) and (sender in blockedUsers[uname.uname]):
+                    sock.send(("You have been blocked by " + uname.uname).encode('ascii'))
+                else:
+                    uname.sock.send(msg.encode('ascii'))
             except:
                 print("Error in broadcasting to user {0}".format(uname))
 
