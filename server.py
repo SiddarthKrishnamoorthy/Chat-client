@@ -30,7 +30,7 @@ class Client:
 
 # TODO: Parsing of commands sent by client
 def cmd(msg, users_online, up, sock):
-    ms = msg.split(' ')
+    ms = msg.strip().split(' ')
     cmds = ms[0]
     print(cmds)
     p = re.compile('^([a-z]+) ([0-9]+),([0-9]+),([0-9]+)$')
@@ -58,6 +58,9 @@ def cmd(msg, users_online, up, sock):
     elif cmds == 'message':
         t = next(x for x in users_online if x.sock == sock)
         uname = ms[1]
+        if (uname in blockedUsers) and (t.uname in blockedUsers[uname]):
+            sock.send(("You have been blocked by " + uname).encode('ascii'))
+            return
         message = '*' + t.uname  + '* ' + ms[2]
 
         for x in users_online:
@@ -94,6 +97,26 @@ def cmd(msg, users_online, up, sock):
         #print(recvr.uname)
         #print(mg)
         recvr.sock.send(('secret ' + sender.uname + ' ' + mg).encode('ascii'))
+    elif cmds == 'block':
+        recv = ms[1]
+        sender = next(x for x in users_online if x.sock == sock)
+        if sender.uname not in blockedUsers:
+            blockedUsers[sender.uname] = []
+        if recv in blockedUsers[sender.uname]:
+            sock.send(("User " + recv + " is already blocked").encode('ascii'))
+        else:
+            blockedUsers[sender.uname].append(recv)
+            sock.send(("User " + recv + " is blocked").encode('ascii'))
+    elif cmds == 'unblock':
+        recv = ms[1]
+        sender = next(x for x in users_online if x.sock == sock)
+        if sender.uname not in blockedUsers:
+            sock.send(("You haven't blocked anyone").encode('ascii'))
+        elif recv not in blockedUsers[sender.uname]:
+            sock.send(("User " + recv + " is not blocked").encode('ascii'))
+        else:
+            blockedUsers[sender.uname].remove(recv)
+            sock.send(("User " + recv + " is unblocked").encode('ascii'))
     else:
         sock.send('Command not supported'.encode('ascii'))
 
@@ -127,6 +150,7 @@ clients = {} # Keeps track of number of requests sent by a client
 up = {} # Username password key-value for a given socket
 users_online = []
 num_login_attempts = {}
+blockedUsers = {}
 
 while True:
     ready_to_read, ready_to_write, in_err = select.select(socket_list, [], [], 0)
