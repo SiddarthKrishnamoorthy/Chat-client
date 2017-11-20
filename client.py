@@ -81,6 +81,9 @@ while True:
             data = sock.recv(1000)
             #print(data.decode())
             if data:
+                if data.decode() == 'logout':
+                    s.close()
+                    sys.exit(0)
                 if data.decode() == 'Incorrect username/password. Please try again':
                     sys.exit(1)
                 elif pi.match(data.decode()):

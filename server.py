@@ -32,16 +32,16 @@ class Client:
 def cmd(msg, users_online, up, sock):
     ms = msg.strip().split(' ')
     cmds = ms[0]
-    print(cmds)
+    #print(cmds)
     p = re.compile('^([a-z]+) ([0-9]+),([0-9]+),([0-9]+)$')
     p2 = re.compile('^([a-z]+) ([0-9]+)$')
-    print(msg)
+    #print(msg)
 
-    if cmds == 'whoelse\n':
+    if cmds == 'whoelse':
         string = '\n'.join([x.uname for x in users_online])
         #print(string)
         sock.send(string.encode('ascii'))
-    elif cmds == 'wholasthr\n':
+    elif cmds == 'wholasthr': # TODO: Fix Bug
         ms = []
         t = calendar.timegm(time.gmtime())
         for u in users_online:
@@ -117,6 +117,14 @@ def cmd(msg, users_online, up, sock):
         else:
             blockedUsers[sender.uname].remove(recv)
             sock.send(("User " + recv + " is unblocked").encode('ascii'))
+    elif cmds == 'logout':
+        sock.send(("logout").encode('ascii'))
+        if sock in socket_list:
+            socket_list.remove(s)
+            del clients[s]
+            users_online.remove(next(x for x in users_online if x.uname == up[s][0]))
+            del up[s]
+        sock.close()
     else:
         sock.send('Command not supported'.encode('ascii'))
 
