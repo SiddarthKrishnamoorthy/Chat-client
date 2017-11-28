@@ -162,6 +162,8 @@ up = {} # Username password key-value for a given socket
 users_online = []
 num_login_attempts = {}
 blockedUsers = {}
+blockedIP = []
+sockIP = {}
 
 while True:
     ready_to_read, ready_to_write, in_err = select.select(socket_list, [], [], 0)
@@ -171,8 +173,14 @@ while True:
             # New connection
             # TODO: Deal with login and sending pending messages when a user logs in again
             sockfd, addr = serv_sock.accept()
+            if addr[0] in blockedIP:
+                sockfd.send('Your IP is blocked'.encode('ascii'))
+                # sockfd.close()
+                continue
             socket_list.append(sockfd) # New connection, added to list of readable sockets
             clients[sockfd] = 0
+            sockIP[sockfd] = addr[0]
+            if addr not in num_login_attempts: num_login_attempts[addr[0]] = 0
         else:
             # message sent from a client
             try:
@@ -209,7 +217,6 @@ while True:
                             up[s] = (usr, p[u.index(usr)])
 
                     elif clients[s] == 1:
-                        clients[s] += 1
                         passwd = data.decode()
                         try:
                             f = open('passwd.db')
@@ -223,9 +230,18 @@ while True:
                         f.pop()
 
                         if up[s][1] != passwd:
-                            s.send('Incorrect username/password. Please try again'.encode('ascii'))
-                            num_login_attempts[up[s][0]] += 1 # TODO: Block IP
+                            num_login_attempts[sockIP[s]] += 1 # TODO: Block IP
+                            clients[s] = 0
+                            if num_login_attempts[sockIP[s]] >= 3:
+                                blockedIP.append(sockIP[s])
+                                del sockIP[s]
+                                s.send('Your IP is blocked'.encode('ascii'))
+                                socket_list.remove(s)
+                                del clients[s]
+                            else:
+                                s.send('Incorrect username/password. Please try again'.encode('ascii'))
                         else:
+                            clients[s] += 1
                             user = Client(s, up[s][0])
                             users_online.append(user)
                             try:

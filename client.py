@@ -85,6 +85,16 @@ while True:
                     s.close()
                     sys.exit(0)
                 if data.decode() == 'Incorrect username/password. Please try again':
+                    print("Incorrect username/password. Please try again")
+                    username = input("Enter username: ")
+                    s.send(username.encode())
+                    password = input("Enter password: ")
+                    s.send(password.encode())
+                    sys.stdout.write('> ')
+                    sys.stdout.flush()
+                elif data.decode() == 'Your IP is blocked':
+                    print('Your IP is blocked')
+                    s.close()
                     sys.exit(1)
                 elif pi.match(data.decode()):
                     b = number.getRandomInteger(10)
